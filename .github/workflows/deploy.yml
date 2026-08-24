@@ -1,0 +1,30 @@
+name: Trigger Vercel Deployment
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Trigger Vercel Deploy Hook
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Deploy Webhook to Vercel
+        env:
+          DEPLOY_HOOK_URL: ${{ secrets.VERCEL_DEPLOY_HOOK_URL }}
+        run: |
+          echo "Triggering Vercel deployment..."
+          response=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X POST "$DEPLOY_HOOK_URL")
+          http_code=$(echo "$response" | grep "HTTP_STATUS:" | cut -d':' -f2)
+          body=$(echo "$response" | sed -e 's/HTTP_STATUS:.*//g')
+          
+          echo "Response: $body"
+          
+          if [ "$http_code" -ge 200 ] && [ "$http_code" -lt 300 ]; then
+            echo "Successfully triggered Vercel deployment! (HTTP $http_code)"
+          else
+            echo "Failed to trigger Vercel deployment! (HTTP $http_code)"
+            exit 1
+          fi
